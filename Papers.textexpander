@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>groupInfo</key>
+	<dict>
+		<key>expandAfterMode</key>
+		<integer>2</integer>
+		<key>groupName</key>
+		<string>Papers</string>
+	</dict>
+	<key>snippetsTE2</key>
+	<array>
+		<dict>
+			<key>abbreviation</key>
+			<string>;cite</string>
+			<key>abbreviationMode</key>
+			<integer>0</integer>
+			<key>creationDate</key>
+			<date>2012-02-21T15:11:12Z</date>
+			<key>flags</key>
+			<integer>2</integer>
+			<key>label</key>
+			<string></string>
+			<key>lastUsed</key>
+			<date>2012-04-27T13:37:25Z</date>
+			<key>modificationDate</key>
+			<date>2012-03-15T14:27:55Z</date>
+			<key>plainText</key>
+			<string>#!/usr/local/bin/ruby
+
+# September 6, 2011
+
+require 'appscript'
+require 'osax'
+
+def records # still hoping that Papers2 will become AppleScriptable
+  papers = Appscript.app("/Applications/Papers2.app")
+  system_events = Appscript.app("System Events.app")
+  papers.activate
+  system_events.processes["Papers2"].menu_bars[1].menu_bar_items['Edit'].menus['Edit'].menu_items['Copy As'].menus['Copy As'].menu_items['BibTeX Record'].click 
+  clipboard = OSAX.osax.the_clipboard
+  return Paper.new(clipboard.split(",\r")[1..-1])
+end
+
+class Paper &lt; Hash
+  
+  def initialize( strings )
+    strings.each do |string|
+      key, value = string.split" = "
+      self[ key ] = clean( value )
+    end
+  end
+
+  def clean( string )
+    to_substitute = [ [ /\\\"([a-z])/, "\\1" ], # ö
+                      [ /\\\'([a-z])/, "\\1" ], # é # is this necessary, since \' is deleted before the .gsub ?
+                      [ /\\c /, "" ],           # ç
+                      [ /\\v /, "" ],           # š
+                      [ /\\([a-z])/, "\\1"] ]   # others, e.g. \\e remaining after string.delete( to_remove )
+    to_remove = "\{\}\r\'"
+    string.delete( to_remove ).gsub_from_array( to_substitute )
+  end
+  
+  def author_list
+    authors = self["author"].split(" and ").collect{ |string| Author.new( string ) }
+
+    return author_list = case authors.length
+      when 1 then authors[0].cite_name
+      when 2 then authors[0].cite_name + "And" + authors[1].cite_name
+      else authors[0].cite_name + "EtAl"
+    end
+  end
+  
+  def journal
+    return self["journal"].delete(" :.\-")
+  end
+  
+  def year
+    return self["year"]
+  end
+
+  def cite_string
+    self.author_list + '_' + self.journal + self.year
+  end
+
+end
+
+class Author
+  def initialize( bibtex_string ) # with format e.g "Morgan, B. J."
+    @surname = bibtex_string.split(",")[0]
+    @forenames = bibtex_string.split(",")[1].split( )
+  end
+  
+  def cite_name
+    @surname.gsub(" ","")
+  end
+end
+
+class String
+  def gsub_from_array( gsub_array )
+    gsub_array.inject(self) { | string, sub | string.gsub( sub[0], sub[1] ) }
+  end
+end
+
+print records.cite_string</string>
+			<key>snippetType</key>
+			<integer>3</integer>
+			<key>useCount</key>
+			<integer>236</integer>
+			<key>uuidString</key>
+			<string>B6DAC0AA-B890-4D02-9072-173803C1F1E0</string>
+		</dict>
+	</array>
+</dict>
+</plist>
